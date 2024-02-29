@@ -27,7 +27,6 @@ The Monte Carlo simulation below shows that a linear model can "perfectly fit" a
 
 1. First, we define the data and function for simulating:
 ```{r}
-
 simulate_R_squared_range <- function(n, p, m) {
   # Step 1: Generate original random feature matrix X and coefficients beta
   X <- matrix(rnorm(n * p), nrow = n, ncol = p)
@@ -49,7 +48,6 @@ simulate_R_squared_range <- function(n, p, m) {
     # Step 6: Calculate R^2 value for the fitted model
     r_squared_values[i+1] <- summary(model_extended)$r.squared
   }
-  
   return(r_squared_values)
 }
 
