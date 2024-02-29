@@ -20,7 +20,7 @@ knitr::opts_chunk$set(
 )
 ```
 
-Link to our GitHub: TODO
+TODO
 
 # Assignment 1
 ## 1) Create a Monte Carlo simulation to illustrate the problem
