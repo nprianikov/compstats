@@ -29,36 +29,14 @@ The Monte Carlo simulation below shows that a linear model can "perfectly fit" a
 
 1. First, we define the data and function for simulating:
 ```{r}
-# One iteration of the Monte Carlo simulation
-simulate_R_squared <- function(n, p, m) {
-
-  # Step 1: Generate original random feature matrix X and coefficients beta
-  X <- matrix(rnorm(n * p), nrow = n, ncol = p)
-  beta <- rnorm(p)
-  y_true <- X %*% beta + rnorm(n)
-  
-  # Step 2 & 3: Extend X with m additional predictors
-  X_new <- matrix(rnorm(m * n), nrow = n, ncol = m)
-  X_extended <- cbind(X, X_new)
-  
-  # Step 4 & 5: Fit a linear model using the extended X and y
-  model_extended <- lm(y_true ~ X_extended - 1) # '- 1' to exclude intercept
-  
-  # Step 6: Calculate R^2 value for the fitted model
-  r_squared_extended <- summary(model_extended)$r.squared
-  
-  return(r_squared_extended)
-}
 
 simulate_R_squared_range <- function(n, p, m) {
   # Step 1: Generate original random feature matrix X and coefficients beta
   X <- matrix(rnorm(n * p), nrow = n, ncol = p)
   beta <- rnorm(p)
   y_true <- X %*% beta + rnorm(n)
-  
   # Generate m additional predictors
   X_new <- matrix(rnorm(m * n), nrow = n, ncol = m)
-  
   # Initialize a vector to store R^2 values
   r_squared_values <- numeric(m+1)
   
@@ -87,15 +65,6 @@ monte_carlo_simulation_range <- function(n, p, r, m) {
   # Compute the mean R^2 over all simulations for each of the m values
   mean_R_squared <- apply(simulations, 1, mean)
   
-  return(mean_R_squared)
-}
-
-monte_carlo_simulation <- function(n, p, r, m) {
-  # Replicate r times the simulation
-  simulations <- replicate(r, simulate_R_squared(n, p, m))
-  
-  # Compute the mean R^2 over all simulations
-  mean_R_squared <- mean(simulations)
   return(mean_R_squared)
 }
 ```
@@ -146,18 +115,12 @@ R^2 = \frac{\text{Var}(X\hat{\beta})}{\text{Var}(Y)}
     = \frac{\text{Var}(Y) - \text{Var}(e)}{\text{Var}(Y)} 
     = 1 - \frac{\text{Var}(e)}{\text{Var}(Y)}
 $$
-Further, 
+The $\text{Var}(e)$ depends on the the sum of squared residuals as the variance is defined as $\frac{1}{n} \sum_i {e_i^2}$. 
+
 $$
-\text{Var}(e) = \sigma^2 = E(\hat{\sigma}^2 | X) = \frac{1}{n-p} \sum_i {e_i^2}.
+e^{(1)}_i = Y_i - \alpha - X_i \beta_1
 $$
-Thus,
-$$
-R^2 = 1 - \frac{\text{Var}(e)}{\text{Var}(Y)}
-    = 1 - \frac{\sigma^2}{\text{Var}(Y)} 
-    = 1 - \frac{E(\hat{\sigma}^2 | X)}{\text{Var}(Y)}
-    = 1 - \frac{\frac{1}{n-p} \sum_i {e_i^2}}{\text{Var}(Y)}
-$$
-Hence, as $p \rightarrow \infty$, $\frac{1}{n-p}$ goes to $0$, bringing the right part of the equation to $0$ and thus $R^2$ to $1$.
+
 
 ## 3) Propose a solution to address the problem.
 
