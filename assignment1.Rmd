@@ -154,4 +154,5 @@ ggplot(results, aes(x = NumPredictors)) +
                       breaks = c("R^2", "Adjusted R^2"),
                       values = c("R^2" = "blue", "Adjusted R^2" = "red"))
 ```
-
+Here, we used the mtcars dataset, which contains 32 observations and 11 numeric variables. We fit a linear regression model starting with 1 predictor, then added predictors until all the variables were used. The goal was to investigate the impact of adding predictors to R² and adjusted R². As we can see on the plot above, whenever adding a predictor, we notice either an increase or no change to R². However, adjusted R² sometimes decreases when a new predictor is added, meaning that the new model performs worse. This comes from the fact that adjusted R², unlike R², takes into account the number of predictors.
+Using these two metrics together, we can argue that using 5 predictors for the example above is sufficient, since adding the rest of the predictors does not improve the model, even though R² increases.
