@@ -118,5 +118,39 @@ In the adjusted $R^2$ an extra term is introduced at the end which is a function
 The adjusted $R^2$ score, by applying this penalty to unneeded predictors, discourages overfitting of models. This can come in use, for example when comparing models trained using different amounts of predictors. If model A is able to achieve the same accuracy as model B, but it uses less predictors to do so, then model A would be preferred by the adjusted $R^2$ while the regular $R^2$ would give both models the same score.
 
 ## 4) Find a real dataset to illustrate the problem and your fix.
+```{r}
+library(tidyverse)
+library(ggplot2)
+library(dplyr)
+library(datasets)
 
+data(mtcars)
+head(mtcars)
+
+```
+
+```{r}
+
+predictors <- setdiff(names(mtcars), 'mpg')
+r_squares <- numeric(length(predictors))
+adjusted_r_squares <- numeric(length(predictors))
+  
+for (i in 1:length(predictors)) {
+    formula <- as.formula(paste('mpg', "~", paste(predictors[1:i], collapse = "+")))
+    model <- lm(formula, data = mtcars)
+    r_squares[i] <- summary(model)$r.squared
+    adjusted_r_squares[i] <- summary(model)$adj.r.squared
+  }
+  
+results <- data.frame(NumPredictors = 1:length(predictors), R2 = r_squares, AdjustedR2 = adjusted_r_squares)
+
+# Plot the results
+ggplot(results, aes(x = NumPredictors)) +
+  geom_line(aes(y = R2, colour = "R^2")) +
+  geom_line(aes(y = AdjustedR2, colour = "Adjusted R^2")) +
+  labs(x = "Number of Predictors", y = "Value", title = "R^2 and Adjusted R^2 vs. Number of Predictors in mtcars Dataset") +
+  scale_colour_manual("", 
+                      breaks = c("R^2", "Adjusted R^2"),
+                      values = c("R^2" = "blue", "Adjusted R^2" = "red"))
+```
 
