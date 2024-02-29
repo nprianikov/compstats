@@ -25,7 +25,7 @@ knitr::opts_chunk$set(
 )
 ```
 
-# Assignment 1s
+# Assignment 1
 
 Link to our GitHub repository: https://github.com/nprianikov/compstats
 
