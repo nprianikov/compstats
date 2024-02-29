@@ -1,7 +1,12 @@
 ---
 title: "KEN4258: Computational Statistics"
 subtitle: "Assignment 1"
-author: "names..."
+author: 
+  - Aurélien Bertrand
+  - Bart van Gool
+  - Gaspar Kuper
+  - Ignacio Cadarso Quevedo
+  - Nikola Prianikov
 date: "February 2024"
 output: pdf_document
 classoption: a4paper
@@ -86,7 +91,7 @@ ggplot(df_experiment, aes(x = predictors, y = r_squared_values)) +
 We can see that the $R^2$ increases with the number of predictors. This suggests that $R^2$ does not reflect the true goodness (accuracy) of the fit.
 
 ## 2) Provide a mathematical proof showing that the problem really exists.
-$R^2$ is given by
+The $R^2$ score is given by
 
 $$
 R^2 = \frac{\text{Var}(X\hat{\beta})}{\text{Var}(Y)} 
@@ -124,11 +129,9 @@ library(datasets)
 
 data(mtcars)
 head(mtcars)
-
 ```
 
 ```{r}
-
 predictors <- setdiff(names(mtcars), 'mpg')
 r_squares <- numeric(length(predictors))
 adjusted_r_squares <- numeric(length(predictors))
