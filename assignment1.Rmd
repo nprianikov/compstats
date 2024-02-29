@@ -99,6 +99,7 @@ ggplot(df_experiment, aes(x = predictors, y = r_squared_values)) +
    ) +
   scale_x_continuous(breaks = seq(0, 10, by = 1))  
 ```
+
 We can see that the $R^2$ increases with the number of predictors even though they have no relationship with the generated data. Although these random predictors can slightly increase the accuracy on the training data, they make make the true performance of the model worse. This suggests that $R^2$ does not reflect the true goodness (accuracy) of the fit.
 
 ## 2) Provide a mathematical proof showing that the problem really exists.
@@ -116,7 +117,6 @@ $$
 e^{(1)}_i = Y_i - \alpha - X_i \beta_1
 $$
 
-
 ## 3) Propose a solution to address the problem.
 As shown in Section 2, the problem with $R^2$ is that it is highly influenced by the number of predictors used in the model. In particular, as the number of predictors grows, the $R^2$ score of the model can only increase or stay the same but not decrease. The issue is then that predictors can be included in the model which don't actually have any relationship to the data, but allow the model to gain some accuracy anyway. Although adding such predictors to the model may seem like a good idea when looking at the $R^2$ score, it can cause the model to overfit to the training data.
 
@@ -132,14 +132,10 @@ In the adjusted $R^2$ an extra term is introduced at the end which is a function
 The adjusted $R^2$ score, by applying this penalty to unneeded predictors, discourages overfitting of models. This can come in use, for example when comparing models trained using different amounts of predictors. If model A is able to achieve the same accuracy as model B, but it uses less predictors to do so, then model A would be preferred by the adjusted $R^2$ while the regular $R^2$ would give both models the same score.
 
 ## 4) Find a real dataset to illustrate the problem and your fix.
-<<<<<<< HEAD
 
 Here, we used the mtcars dataset, which contains $32$ observations and $11$ numeric variables. We fit a linear regression model starting with $1$ predictor, then added predictors until all the variables were used. The goal was to investigate the impact of adding predictors to $R^2$ and adjusted $R^2$. 
 
-```{r}
-=======
 ```{r, echo=FALSE}
->>>>>>> 6ad77c5514bb456ace33702af186f237e1efa5e1
 library(tidyverse)
 library(ggplot2)
 library(dplyr)
