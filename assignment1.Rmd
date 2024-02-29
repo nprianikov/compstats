@@ -108,7 +108,7 @@ This drawback of the $R^2$ metric has been well documented, and a solution to it
 
 $$
 \text{Adjusted } R^2 = 1 - (1-R^2) \times \frac{n - 1}{n - p - 1} 
-= 1 - \frac{\sigma^2}{\text{Var}(Y)} \times \frac{n - 1}{n - p - 1}
+= 1 - \frac{\text{Var}(e)}{\text{Var}(Y)} \times \frac{n - 1}{n - p - 1}
 $$
 
 In the adjusted $R^2$ an extra term is introduced at the end which is a function of $n$ and $p$. Since $n$ is a constant, this term is only influenced by $p$. As $p$ gets larger, the denominator gets smaller, causing this term to increase. This means that as new predictors are introduced to the model, the adjusted $R^2$ metric will apply a penalty. Therefore, if a predictor does not add enough predictive power to the model to counteract this penalty, the adjusted $R^2$ score will go down. 
