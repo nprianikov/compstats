@@ -112,7 +112,7 @@ R^2 = \frac{\text{Var}(X\hat{\beta})}{\text{Var}(Y)}
     = 1 - \frac{\text{Var}(e)}{\text{Var}(Y)}
 $$
 
-The $\text{Var}(e)$ depends on the the sum of squared residuals due the variance being defined as $\frac{1}{n} \sum_i {e_i^2}$.
+In an unbiased mode, $\text{Var}(e)$ depends on the the sum of squared residuals. As the sum of squared residuals grows, so does $\text{Var}(e)$.
 
 We claim that the sum of squared residuals can either decrease or stay the same when adding parameters to the models, causing $R^2$ either stay the same or increase. To illustrate this we define a simple model $Y = \alpha + X^{(1)} \beta_1 + \epsilon$ with a single parameter, and $Y' = \alpha + X^{(1)} \beta_1 + X^{(2)} \beta_2 + \epsilon$ that extend first model with the second parameter. The residuals are defined respectively as
 
@@ -124,7 +124,17 @@ $$
 e^{(2)}_i = Y_i - \alpha - X^{(1)}_i \beta_1 - X^{(2)}_i \beta_2
 $$
 
-Due to the fact that OLS minimizes the criterion $\sum_i {e_i^2}$ , it aims to find the set of parameters that minimizes the total squared residuals. In the model with a single parameter, OLS will find an optimal $\beta_1$ that minimizes the sum of squared residuals given the constraint of the model structure. Adding $\beta_2$ allows the model to potentially account for more variance in $Y$ that $X^{(1)}$ alone could not explain. The parameter $\beta_2$ will take on a value that contributes to either a reduction in the total sum of squared residuals or leaves it unchanged. The latter scenario occurs when $X^{(2)}$ does not provide any additional explanatory power over what is already explained by $X^{(1)}$. However, if $X^{(2)}$ does explain additional variance in $Y$, then the sum of squared residuals will decrease.
+Due to the fact that OLS minimizes the criterion $\sum_i {e_i^2}$ , it aims to find the set of parameters that minimizes the sum of squared residuals. In the model with a single parameter, OLS will find an optimal $\beta_1$ that minimizes the sum of squared residuals given the constraint of the model structure. Adding another predictor $X^{(2)}$ allows the model to choose a value for $\beta_2$ which could allow the sum of squared residuals to become even lower. There are two cases.
+
+#### Case 1: $X^{(2)}$ can help the model
+
+If this is the case, the model will choose a value for $\beta_2$ which lowers the sum of squared residuals when compared to the model with only one predictor.
+
+#### Case 2: $X^{(2)}$ can not help the model
+
+In this case, the model will simply set the parameter $\beta_2$ to 0, essentially ignoring the new predictor. As this only leaves a single predictor, the same one as in the original model, the value for $\beta_1$ will also be the same as it was before. The sum of squared residuals will therefore remain the same.
+
+In both cases the sum of squared residuals does not increase, and as a result $R^2$ will either increase or stay the same.
 
 ## 3) Propose a solution to address the problem.
 
@@ -179,6 +189,6 @@ ggplot(results, aes(x = NumPredictors)) +
                       values = c("R^2" = "blue", "Adjusted R^2" = "red"))
 ```
 
-As we can see on the plot above, whenever adding a predictor, we notice either an increase or no change to $R^2$. However, adjusted $R^2$ sometimes decreases when a new predictor is added, meaning that the new model performs worse. This comes from the fact that adjusted $R^2$, unlike $R^2$, takes into account the number of predictors.
+As we can see on the plot above, whenever adding a predictor, we notice either an increase or no change to $R^2$. However, adjusted $R^2$ sometimes decreases when a new predictor is added. This comes from the fact that adjusted $R^2$, unlike $R^2$, penalizes the model for including parameters that don't help increase the accuracy enough.
 
-Using these two metrics together, we can argue that using $5$ predictors for the example above is sufficient, since adding the rest of the predictors does not improve the model, even though $R^2$ increases.
+Using these two metrics together, we can argue that using $5$ predictors for the example above is sufficient, since adding the rest of the predictors does not improve the model sufficiently much, even though $R^2$ increases.
