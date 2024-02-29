@@ -20,8 +20,6 @@ knitr::opts_chunk$set(
 )
 ```
 
-TODO
-
 # Assignment 1
 ## 1) Create a Monte Carlo simulation to illustrate the problem
 
@@ -46,10 +44,8 @@ simulate_R_squared_range <- function(n, p, m) {
   for (i in 1:m) {
     # Step 2 & 3: Extend X by adding one more column from X_new at a time
     X_extended <- cbind(X, X_new[, 1:i])
-    
     # Step 4 & 5: Fit a linear model using the extended X and y
     model_extended <- lm(y_true ~ X_extended - 1) # '- 1' to exclude intercept
-    
     # Step 6: Calculate R^2 value for the fitted model
     r_squared_values[i+1] <- summary(model_extended)$r.squared
   }
@@ -61,10 +57,8 @@ simulate_R_squared_range <- function(n, p, m) {
 monte_carlo_simulation_range <- function(n, p, r, m) {
   # Replicate r times the simulation and store each set of m R^2 values
   simulations <- replicate(r, simulate_R_squared_range(n, p, m), simplify = "array")
-  
   # Compute the mean R^2 over all simulations for each of the m values
   mean_R_squared <- apply(simulations, 1, mean)
-  
   return(mean_R_squared)
 }
 ```
@@ -81,9 +75,7 @@ df_experiment <- tibble(
   predictors = seq(0, 10, by = 1),
   r_squared_values = monte_carlo_simulation_range(100, 5, 500, 10)
 )
-```
 
-```{r}
 # Plot
 ggplot(df_experiment, aes(x = predictors, y = r_squared_values)) +
   geom_line() +
@@ -97,24 +89,13 @@ We can see that the $R^2$ increases with the number of predictors. This suggests
 
 ## 2) Provide a mathematical proof showing that the problem really exists.
 $R^2$ is given by
-$$
-R^2 = \frac{\text{Var}(X\hat{\beta})}{\text{Var}(Y)}
-$$
-We know that 
-$$
-\text{Var}(Y) = \text{Var}(X\hat{\beta}) + \text{Var}(e)
-$$
-So, 
-$$
-\text{Var}(X\hat{\beta}) = \text{Var}(Y) - \text{Var}(e)
-$$
 
-Rewriting $R^2$, we have
 $$
 R^2 = \frac{\text{Var}(X\hat{\beta})}{\text{Var}(Y)} 
     = \frac{\text{Var}(Y) - \text{Var}(e)}{\text{Var}(Y)} 
     = 1 - \frac{\text{Var}(e)}{\text{Var}(Y)}
 $$
+
 The $\text{Var}(e)$ depends on the the sum of squared residuals as the variance is defined as $\frac{1}{n} \sum_i {e_i^2}$. 
 
 $$
