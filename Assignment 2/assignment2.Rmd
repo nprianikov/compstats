@@ -28,3 +28,13 @@ knitr::opts_chunk$set(
 # Assignment 2
 
 Link to our GitHub repository: <https://github.com/nprianikov/compstats>
+
+## 1) Reproduce Figure 1 from [(Candès et al. 2018)](https://arxiv.org/abs/1610.02351).
+
+## 2) What is the problem that Figure 1 tries to illustrate?
+
+## 3) Propose a solution to address the problem.
+
+## 4) Show that your solution fixes the problem.
+
+## 5) Find a real dataset and apply your method.
