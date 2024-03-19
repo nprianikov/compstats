@@ -1,0 +1,30 @@
+---
+title: "KEN4258: Computational Statistics"
+subtitle: "Assignment 2"
+author: 
+  - Aurélien Bertrand
+  - Bart van Gool
+  - Gaspar Kuper
+  - Ignacio Cadarso Quevedo
+  - Nikola Prianikov
+date: "March 2024"
+output: pdf_document
+classoption: a4paper
+urlcolor: blue
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo = TRUE,
+  warning = FALSE, 
+  message = FALSE, 
+  fig.width = 5, 
+  fig.height = 4, 
+  out.width = "50%", 
+  fig.align = "center"
+)
+```
+
+# Assignment 2
+
+Link to our GitHub repository: <https://github.com/nprianikov/compstats>
