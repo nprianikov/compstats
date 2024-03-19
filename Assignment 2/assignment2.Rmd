@@ -32,14 +32,13 @@ Link to our GitHub repository: <https://github.com/nprianikov/compstats>
 ## 1) Reproduce Figure 1 from [(Candès et al. 2018)](https://arxiv.org/abs/1610.02351).
 
 ```{r}
-library(ggplot2)
 library(tibble)
 
 set.seed(101)
 
 n <- 500
 p <- 200
-n_sim <- 10  # TODO: make this 10000
+n_sim <- 10000
 
 # Generate X as a single AR(1) time-series of size p
 generate_AR1 <- function(n, p) {
@@ -51,7 +50,7 @@ generate_AR1 <- function(n, p) {
 generate_responses <- function(n, p, prob = NULL) {
   X <- generate_AR1(n=n, p=p)
   if (is.null(prob)) {
-    prob <- plogis(0.08 * sum(X[2:22]))
+    prob <- plogis(0.08 * sum(X[2:22]))  # TODO: this should be different for each y!!
   }
   Y <- rbinom(n, 1, prob)
   
@@ -68,26 +67,27 @@ df_plot <- tibble(
 )
 ```
 
-```{r, echo=FALSE}
+```{r, echo=FALSE, fig.width=10, fig.height=2}
+library(ggplot2)
 library(cowplot)
 
 # Create histograms for each set of p-values
 histogram_1 <- ggplot(df_plot, aes(x=p_values_1)) + 
   geom_histogram(color="red", fill="blue", bins=20, boundary=0) +
   labs(x="P-values", y="count", title="Global Null, AR(1) Design") +
-  theme(plot.title = element_text(hjust = 0.5, face="bold"),
-        axis.title = element_text(face="bold")) +
-  scale_x_continuous(limits = c(0, 1))
+  theme(plot.title=element_text(hjust=0, face="bold")) +
+  scale_x_continuous(limits=c(0, 1)) +
+  scale_y_continuous(limits=c(0, 2000))
 
 histogram_2 <- ggplot(df_plot, aes(x=p_values_2)) + 
   geom_histogram(color="red", fill="blue", bins=20, boundary=0) +
   labs(x="P-values", y="count", title="20 Nonzero Coefficients, AR(1) Design") +
-  theme(plot.title = element_text(hjust = 0.5, face="bold"),
-        axis.title = element_text(face="bold")) +
-  scale_x_continuous(limits = c(0, 1))
+  theme(plot.title=element_text(hjust=0, face="bold")) +
+  scale_x_continuous(limits=c(0, 1)) +
+  scale_y_continuous(limits=c(0, 2000))
 
 # Arrange the plots side by side
-combined_plots <- plot_grid(histogram_1, histogram_2, ncol=2, shareY=TRUE)
+combined_plots <- plot_grid(histogram_1, histogram_2, nrow=1, ncol=2, shareY=TRUE)
 
 # Display the combined plots
 print(combined_plots)
