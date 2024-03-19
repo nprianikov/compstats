@@ -34,7 +34,6 @@ Link to our GitHub repository: <https://github.com/nprianikov/compstats>
 ```{r}
 library(ggplot2)
 library(tibble)
-library(cowplot)
 
 set.seed(101)
 
@@ -70,6 +69,8 @@ df_plot <- tibble(
 ```
 
 ```{r, echo=FALSE}
+library(cowplot)
+
 # Create histograms for each set of p-values
 histogram_1 <- ggplot(df_plot, aes(x=p_values_1)) + 
   geom_histogram(color="red", fill="blue", bins=20, boundary=0) +
