@@ -31,6 +31,67 @@ Link to our GitHub repository: <https://github.com/nprianikov/compstats>
 
 ## 1) Reproduce Figure 1 from [(Candès et al. 2018)](https://arxiv.org/abs/1610.02351).
 
+```{r}
+library(ggplot2)
+library(tibble)
+library(cowplot)
+
+set.seed(101)
+
+n <- 500
+p <- 200
+n_sim <- 10  # TODO: make this 10000
+
+# Generate X as a single AR(1) time-series of size p
+generate_AR1 <- function(n, p) {
+  X <- replicate(p, arima.sim(n=n, list(0.5)))
+  return(X)
+}
+
+# Function to generate responses for a given X
+generate_responses <- function(n, p, prob = NULL) {
+  X <- generate_AR1(n=n, p=p)
+  if (is.null(prob)) {
+    prob <- plogis(0.08 * sum(X[2:22]))
+  }
+  Y <- rbinom(n, 1, prob)
+  
+  fit <- glm(Y ~ X, family = binomial(link="logit"))
+  
+  p_values <- summary(fit)$coef[, "Pr(>|z|)"][-1]
+  return(p_values)
+}
+
+# Combine the lists into a single tibble
+df_plot <- tibble(
+  p_values_1 = c(replicate(n_sim, generate_responses(n=n, p=p, prob=0.5))),
+  p_values_2 = c(replicate(n_sim, generate_responses(n=n, p=p)))
+)
+```
+
+```{r, echo=FALSE}
+# Create histograms for each set of p-values
+histogram_1 <- ggplot(df_plot, aes(x=p_values_1)) + 
+  geom_histogram(color="red", fill="blue", bins=20, boundary=0) +
+  labs(x="P-values", y="count", title="Global Null, AR(1) Design") +
+  theme(plot.title = element_text(hjust = 0.5, face="bold"),
+        axis.title = element_text(face="bold")) +
+  scale_x_continuous(limits = c(0, 1))
+
+histogram_2 <- ggplot(df_plot, aes(x=p_values_2)) + 
+  geom_histogram(color="red", fill="blue", bins=20, boundary=0) +
+  labs(x="P-values", y="count", title="20 Nonzero Coefficients, AR(1) Design") +
+  theme(plot.title = element_text(hjust = 0.5, face="bold"),
+        axis.title = element_text(face="bold")) +
+  scale_x_continuous(limits = c(0, 1))
+
+# Arrange the plots side by side
+combined_plots <- plot_grid(histogram_1, histogram_2, ncol=2, shareY=TRUE)
+
+# Display the combined plots
+print(combined_plots)
+```
+
 ## 2) What is the problem that Figure 1 tries to illustrate?
 
 ## 3) Propose a solution to address the problem.
