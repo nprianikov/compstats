@@ -56,7 +56,7 @@ get_pvalues <- function(p, n, ar_coefficient, prob, logit_coefficient){
   
   # Summary of the model to get p-values
   p_values1 <- coef(summary(glm_model_1))[, "Pr(>|z|)"]
-  p_values1 <- p_values[-1]  # Exclude the intercept (assuming it's the first coefficient)
+  p_values1 <- p_values1[-1]  # Exclude the intercept (assuming it's the first coefficient)
   
   
   # SIMULATION 2
