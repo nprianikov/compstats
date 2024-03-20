@@ -99,6 +99,77 @@ print(combined_plots)
 
 ## 3) Propose a solution to address the problem.
 
+```{r}
+# draw a new sample from the conditional distribution of Xj | X-j using a random number generator
+# Not sure if this is the correct way to sample
+simulate_Xj_given_Xj <- function(X, j) {
+  Xj <- X[, j] 
+  X_minus_j <- X[, -j, drop = FALSE]
+  
+  # Fit a model to predict Xj from the rest of the data
+  model <- glm(Xj ~ X_minus_j - 1, family = "gaussian") 
+  predicted_Xj <- predict(model, newdata = list(X_minus_j = X_minus_j))
+  
+  residuals_sd <- sd(resid(model))
+  # Generate new samples for Xj with added randomness
+  new_Xj_samples <- predicted_Xj + rnorm(length(predicted_Xj), mean = 0, sd = residuals_sd)
+  
+  return(new_Xj_samples)
+}
+
+
+
+# Feature importance statistic function to test whether Xj and Y are conditionally independent.
+compute_Tj <- function(X, y) {
+  fit <- glm(y ~ X, family = binomial(link="logit"))
+  coef <- coef(fit)
+  return(abs(coef))
+}
+
+
+
+
+# Conditional Randomization Test for a specific j
+conditional_randomization_test <- function(X, y, j, K = 200) {
+  original_Tj <- compute_Tj(X, y)[j]
+  greater_count <- 0
+  
+  for (k in 1:K) {
+    # Create a new data matrix by simulating the jth column and keeping the remaining columns the same
+    X_simulated <- X
+    X_simulated[, j] <- simulate_Xj_given_Xj(X, j)
+    
+    # Compute Tj for the simulated data
+    simulated_Tj <- compute_Tj(X_simulated, y)[j]
+    
+    # Increment count if simulated Tj is greater than or equal to the original Tj
+    if (simulated_Tj >= original_Tj) {
+      greater_count <- greater_count + 1
+    }
+  }
+  
+  # Calculate p-value
+  p_value <- (1 + greater_count) / (K + 1)
+  return(p_value)
+}
+
+# Conditional Randomization Test for entire matrix X
+conditional_randomization_test_all <- function(X, y, K = 200) {
+  p_values <- numeric(ncol(X))
+
+  for (j in 1:ncol(X)) {
+    p_values[j] <- conditional_randomization_test(X, y, j, K)
+  }
+  
+  return(p_values)
+}
+
+X <- generate_AR1(n=n, p=p)
+Y <- rbinom(n, 1, 0.5)
+p_values <- conditional_randomization_test_all(X, Y)
+print(p_values)
+```
+
 ## 4) Show that your solution fixes the problem.
 
 ## 5) Find a real dataset and apply your method.
