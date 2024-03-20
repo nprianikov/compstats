@@ -38,7 +38,7 @@ set.seed(101)
 
 n <- 500
 p <- 200
-n_sim <- 10000
+n_sim <- 1000 # TODO: not showing anything with 10000
 
 # Generate X as a single AR(1) time-series of size p
 generate_AR1 <- function(n, p) {
@@ -46,17 +46,17 @@ generate_AR1 <- function(n, p) {
   return(X)
 }
 
-# Function to generate responses for a given X
+# Function to generate responses, fit a logistic regression model and return individual p-values
 generate_responses <- function(n, p, prob = NULL) {
   X <- generate_AR1(n=n, p=p)
   if (is.null(prob)) {
-    prob <- plogis(0.08 * sum(X[2:22]))  # TODO: this should be different for each y!!
+    prob <- plogis(0.08 * rowSums(X[, 2:22]))
   }
   Y <- rbinom(n, 1, prob)
   
   fit <- glm(Y ~ X, family = binomial(link="logit"))
   
-  p_values <- summary(fit)$coef[, "Pr(>|z|)"][-1]
+  p_values <- summary(fit)$coef[, "Pr(>|z|)"][-1] # Exclude intercept
   return(p_values)
 }
 
@@ -87,7 +87,9 @@ histogram_2 <- ggplot(df_plot, aes(x=p_values_2)) +
   scale_y_continuous(limits=c(0, 2000))
 
 # Arrange the plots side by side
-combined_plots <- plot_grid(histogram_1, histogram_2, nrow=1, ncol=2, shareY=TRUE)
+combined_plots <- plot_grid(
+  histogram_1, histogram_2, nrow=1, ncol=2, shareY=TRUE, shareX=TRUE
+)
 
 # Display the combined plots
 print(combined_plots)
