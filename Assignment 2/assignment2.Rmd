@@ -50,7 +50,7 @@ generate_AR1 <- function(n, p) {
 generate_responses <- function(n, p, prob = NULL) {
   X <- generate_AR1(n=n, p=p)
   if (is.null(prob)) {
-    prob <- plogis(0.08 * rowSums(X[, 2:22]))
+    prob <- plogis(0.08*rowSums(X[, 2:22]))
   }
   Y <- rbinom(n, 1, prob)
   
@@ -116,8 +116,6 @@ simulate_Xj_given_Xj <- function(X, j) {
   return(new_Xj_samples)
 }
 
-
-
 # Feature importance statistic function to test whether Xj and Y are conditionally independent.
 # Using absolute value of an estimated coefficient
 # Source paper uses abs. value of Lasso-estimated coefficient
@@ -126,9 +124,6 @@ compute_Tj <- function(X, y) {
   coef <- coef(fit)
   return(abs(coef))
 }
-
-
-
 
 # Conditional Randomization Test for a specific j
 conditional_randomization_test <- function(X, y, j, K = 200) {
@@ -161,7 +156,6 @@ conditional_randomization_test_all <- function(X, y, K = 1) {
   for (j in 1:ncol(X)) {
     p_values[j] <- conditional_randomization_test(X, y, j, K)
   }
-  
   return(p_values)
 }
 
