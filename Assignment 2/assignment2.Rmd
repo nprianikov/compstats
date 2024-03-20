@@ -38,9 +38,9 @@ set.seed(101)
 
 n <- 500
 p <- 200
-n_sim <- 1000 # TODO: not showing anything with 10000
+n_sim <- 1 # TODO: not showing anything with 10000
 
-# Generate X as a single AR(1) time-series of size p
+# Generate X as n AR(1) time-series of size p
 generate_AR1 <- function(n, p) {
   X <- replicate(p, arima.sim(n=n, list(0.5)))
   return(X)
@@ -54,7 +54,7 @@ generate_responses <- function(n, p, prob = NULL) {
   }
   Y <- rbinom(n, 1, prob)
   
-  fit <- glm(Y ~ X, family = binomial(link="logit"))
+  fit <- glm(Y ~ X, family="binomial")
   
   p_values <- summary(fit)$coef[, "Pr(>|z|)"][-1] # Exclude intercept
   return(p_values)
@@ -88,7 +88,7 @@ histogram_2 <- ggplot(df_plot, aes(x=p_values_2)) +
 
 # Arrange the plots side by side
 combined_plots <- plot_grid(
-  histogram_1, histogram_2, nrow=1, ncol=2, shareY=TRUE, shareX=TRUE
+  histogram_1, histogram_2, nrow=1, ncol=2, shareY=TRUE
 )
 
 # Display the combined plots
