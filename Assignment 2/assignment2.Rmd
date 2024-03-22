@@ -124,6 +124,12 @@ To correct this problem, we will need to implement a method to decrease the fals
 
 ## 3) Propose a solution to address the problem.
 
+The Conditional Randomization Test (CRT) from the [(Candès et al. 2018)](https://arxiv.org/abs/1610.02351) presents a solution to our problem. CRT generates a distribution for the test statistic under the null hypothesis by conditioning on the observed values of the response $Y$ and all covariates other than the one being tested. For each covariate $X{j}$, the CRT samples a new $X{j}$ from its conditional distribution given the other covariates, computes the test statistic for this new $X_{j}$ while $Y$ and the other covariates remain the same, and then compares this statistic to the one computed on the actual data.
+
+We, however, introduce two modifications to the original CRT procedure. Firstly, the original procedure requires us to know the conditional distribution of covariates. Since the exact distribution of the data is unknown in practice we follow the approach of [(Shaer et al. 2023)](https://arxiv.org/pdf/2210.00354.pdf), where conditional Gaussian distribution was used to sample the covariate $X_{j}$ conditional on all the other covariates. Parameters of the mean and the variance are therefore estimated from all the other covariates. The second difference is that for the test statistic $T_{j}$ we simply utilize absolute values of a coefficient fitted with Logistic regression without Lasso regularization. This is motivated by the fact that even with an extremely small penalty constant our experiments resulted in Lasso regularization to push the coefficients of the model to be too low which caused CRT to produce invalid $p$-values.
+
+This process is repeated K times to generate an empirical distribution of the test statistic under the null hypothesis. The p-value is then calculated based on where the actual test statistic falls within this null distribution. By doing this, CRT accounts for the dependence between the covariates.
+
 ```{r}
 library(MASS)
 
@@ -190,8 +196,12 @@ conditional_randomization_test <- function(X, y, j, K = 20) {
 
 ## 4) Show that your solution fixes the problem.
 
-The code below is an attempt (thus not sure if it is fully correct) to show how CRT fixes issue with the original plot.
+![solution](guasssample_n200_p80_K100_nsim_1000_2.png)
 
+The histograms from CRT show that the distribution of p-values is more uniform. This uniform distribution is what we would expect if the null hypothesis is true. We can also see that there is no inflation of small p-values, which as explained in section 2 were identifying $\beta_1$ as significant.
+The Conditional Randomization Test has corrected for this inflation by better modeling the null distribution.
+
+In conclusion, CRT has provided valid p-values that are a more reliable indication of the true significance of the predictors.
 ```{r}
 generate_responses_crt <- function(n, p, prob = NULL) {
   X <- generate_AR1(n=n, p=p)
