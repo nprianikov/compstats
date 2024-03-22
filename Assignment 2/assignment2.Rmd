@@ -15,7 +15,8 @@ urlcolor: blue
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(
-  echo = TRUE,
+  echo = FALSE,
+  eval = FALSE,
   warning = FALSE, 
   message = FALSE, 
   fig.width = 5, 
@@ -31,7 +32,9 @@ Link to our GitHub repository: <https://github.com/nprianikov/compstats>
 
 ## 1) Reproduce Figure 1 from [(Candès et al. 2018)](https://arxiv.org/abs/1610.02351).
 
-```{r, echo=False} 
+![Replicated simulation from the source paper.](part1.jpeg)
+
+```{r, echo=FALSE} 
 # Helper functions to generate the data and responses
 
 # Generate X as n AR(1) time-series of size p
@@ -54,7 +57,7 @@ generate_p_values <- function(X, y, select = TRUE) {
 }
 ```
 
-```{r}
+```{r, echo=FALSE}
 library(tibble)
 
 set.seed(101)
@@ -126,11 +129,11 @@ To correct this problem, we will need to implement a method to decrease the fals
 
 The Conditional Randomization Test (CRT) from the [(Candès et al. 2018)](https://arxiv.org/abs/1610.02351) presents a solution to our problem. CRT generates a distribution for the test statistic under the null hypothesis by conditioning on the observed values of the response $Y$ and all covariates other than the one being tested. For each covariate $X{j}$, the CRT samples a new $X{j}$ from its conditional distribution given the other covariates, computes the test statistic for this new $X_{j}$ while $Y$ and the other covariates remain the same, and then compares this statistic to the one computed on the actual data.
 
-We, however, introduce two modifications to the original CRT procedure. Firstly, the original procedure requires us to know the conditional distribution of covariates. Since the exact distribution of the data is unknown in practice we follow the approach of [(Shaer et al. 2023)](https://arxiv.org/pdf/2210.00354.pdf), where conditional Gaussian distribution was used to sample the covariate $X_{j}$ conditional on all the other covariates. Parameters of the mean and the variance are therefore estimated from all the other covariates. The second difference is that for the test statistic $T_{j}$ we simply utilize absolute values of a coefficient fitted with Logistic regression without Lasso regularization. This is motivated by the fact that even with an extremely small penalty constant our experiments resulted in Lasso regularization to push the coefficients of the model to be too low which caused CRT to produce invalid $p$-values.
+However, we introduce two modifications to the original CRT procedure. Firstly, the original procedure requires us to know the conditional distribution of covariates. Since the exact distribution of the data is unknown in practice we follow the approach of [(Shaer et al. 2023)](https://arxiv.org/pdf/2210.00354.pdf), where conditional Gaussian distribution was used to sample the covariate $X_{j}$ conditional on all the other covariates. Parameters of the mean and the variance are therefore estimated from all the other covariates. The second difference is that for the test statistic $T_{j}$ we simply utilize absolute values of a coefficient fitted with Logistic regression without Lasso regularization. This is motivated by the fact that even with an extremely small penalty constant our experiments resulted in Lasso regularization to push the coefficients of the model to be too low which caused CRT to produce invalid $p$-values.
 
 This process is repeated K times to generate an empirical distribution of the test statistic under the null hypothesis. The p-value is then calculated based on where the actual test statistic falls within this null distribution. By doing this, CRT accounts for the dependence between the covariates.
 
-```{r}
+```{r, echo=FALSE}
 library(MASS)
 
 simulate_Xj_gaussian <- function(X, j) {
@@ -196,13 +199,13 @@ conditional_randomization_test <- function(X, y, j, K = 20) {
 
 ## 4) Show that your solution fixes the problem.
 
-![solution](guasssample_n200_p80_K100_nsim_1000_2.png)
+![Demonstration of a fix through CRT. Simulation was $10^3$ times with reduced dimensionality of p=80, n=200 and K=100](part4.png)
 
 The histograms from CRT show that the distribution of p-values is more uniform. This uniform distribution is what we would expect if the null hypothesis is true. We can also see that there is no inflation of small p-values, which as explained in section 2 were identifying $\beta_1$ as significant.
 The Conditional Randomization Test has corrected for this inflation by better modeling the null distribution.
 
 In conclusion, CRT has provided valid p-values that are a more reliable indication of the true significance of the predictors.
-```{r}
+```{r, echo=FALSE}
 generate_responses_crt <- function(n, p, prob = NULL) {
   X <- generate_AR1(n=n, p=p)
   if (is.null(prob)) {
@@ -252,7 +255,7 @@ print(combined_plots)
 
 ## 5) Find a real dataset and apply your method.
 
-```{r}
+```{r, echo=FALSE}
 library(readr)
 library(dplyr)
 library(ggplot2)
@@ -267,7 +270,7 @@ data <- data[, !names(data) %in% c("Net.worth.Assets", "Current.Liability.to.Lia
 ncol(data)/nrow(data)
 ```
 
-```{r}
+```{r, echo=FALSE}
 # Get dependent and independent variables
 y <- as.matrix(data[, 1])
 X <- as.matrix(data[, -1])
