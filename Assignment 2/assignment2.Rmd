@@ -38,9 +38,8 @@ library(tibble)
 
 n <- 500
 p <- 200
-n_sim <- 1 # TODO: not showing anything with 10000
 
-# Generate X as a single AR(1) time-series of size p
+# Generate X as n AR(1) time-series of size p
 generate_AR1 <- function(n, p) {
   X <- replicate(n, arima.sim(n=p, list(0.5)))
   return(t(X))
@@ -50,17 +49,17 @@ generate_AR1 <- function(n, p) {
 generate_responses <- function(n, p, prob = NULL) {
   X <- generate_AR1(n=n, p=p)
   if (is.null(prob)) {
-    prob <- plogis(0.08 * rowSums(X[, 2:22]))
+    prob <- plogis(0.08*rowSums(X[, 2:22]))
   }
   Y <- rbinom(n, 1, prob)
   
-  fit <- glm(Y ~ X, family = binomial(link="logit"))
+  fit <- glm(Y ~ X, family=binomial(link="logit"))
   
   p_values <- summary(fit)$coef[, "Pr(>|z|)"][2] # Take p-values for beta_1 only
   return(p_values)
 }
 
-# Combine the lists into a single tibble
+n_sim <- 10000
 df_plot <- tibble(
   p_values_1 = c(replicate(n_sim, generate_responses(n=n, p=p, prob=0.5))),
   p_values_2 = c(replicate(n_sim, generate_responses(n=n, p=p)))
@@ -73,24 +72,22 @@ library(ggplot2)
 library(cowplot)
 
 # Create histograms for each set of p-values
-histogram_1 <- ggplot(df_plot, aes(x=p_values_1)) + 
+histogram_1 <- ggplot(data=df_plot, aes(x=p_values_1)) + 
   geom_histogram(color="red", fill="blue", bins=20, boundary=0) +
   labs(x="P-values", y="count", title="Global Null, AR(1) Design") +
   theme(plot.title=element_text(hjust=0, face="bold")) +
   scale_x_continuous(limits=c(0, 1)) +
-  scale_y_continuous(limits=c(0, 50))
+  scale_y_continuous(limits=c(0, 2000))
 
-histogram_2 <- ggplot(df_plot, aes(x=p_values_2)) + 
+histogram_2 <- ggplot(data=df_plot, aes(x=p_values_2)) + 
   geom_histogram(color="red", fill="blue", bins=20, boundary=0) +
   labs(x="P-values", y="count", title="20 Nonzero Coefficients, AR(1) Design") +
   theme(plot.title=element_text(hjust=0, face="bold")) +
   scale_x_continuous(limits=c(0, 1)) +
-  scale_y_continuous(limits=c(0, 50))
+  scale_y_continuous(limits=c(0, 2000))
 
 # Arrange the plots side by side
-combined_plots <- plot_grid(
-  histogram_1, histogram_2, nrow=1, ncol=2, shareY=TRUE, shareX=TRUE
-)
+combined_plots <- plot_grid(histogram_1, histogram_2, nrow=1, ncol=2, shareY=TRUE)
 
 # Display the combined plots
 print(combined_plots)
@@ -120,30 +117,28 @@ To correct this problem, we will need to implement a method to decrease the fals
 # Not sure if this is the correct way to sample
 simulate_Xj_given_Xj <- function(X, j) {
   Xj <- X[, j] 
-  X_minus_j <- X[, -j, drop = FALSE]
+  X_minus_j <- X[, -j, drop=FALSE]
   
   # Fit a model to predict Xj from the rest of the data
-  model <- glm(Xj ~ X_minus_j - 1, family = "gaussian") 
-  predicted_Xj <- predict(model, newdata = list(X_minus_j = X_minus_j))
+  model <- glm(Xj ~ X_minus_j - 1, family="gaussian")
+  predicted_Xj <- predict(model, newdata=list(X_minus_j=X_minus_j))
   
   residuals_sd <- sd(resid(model))
+  
   # Generate new samples for Xj with added randomness
-  new_Xj_samples <- predicted_Xj + rnorm(length(predicted_Xj), mean = 0, sd = residuals_sd)
+  new_Xj_samples <- predicted_Xj + rnorm(length(predicted_Xj), mean=0, sd=residuals_sd)
   
   return(new_Xj_samples)
 }
 
-
-
 # Feature importance statistic function to test whether Xj and Y are conditionally independent.
+# Using absolute value of an estimated coefficient
+# Source paper uses abs. value of Lasso-estimated coefficient
 compute_Tj <- function(X, y) {
-  fit <- glm(y ~ X, family = binomial(link="logit"))
+  fit <- glm(y ~ X - 1, family=binomial(link="logit"))
   coef <- coef(fit)
   return(abs(coef))
 }
-
-
-
 
 # Conditional Randomization Test for a specific j
 conditional_randomization_test <- function(X, y, j, K = 200) {
@@ -166,27 +161,74 @@ conditional_randomization_test <- function(X, y, j, K = 200) {
   p_value <- (1 + greater_count) / (K + 1)
   return(p_value)
 }
+```
 
+```{r}
 # Conditional Randomization Test for entire matrix X
 conditional_randomization_test_all <- function(X, y, K = 1) {
   p_values <- numeric(ncol(X))
-
   for (j in 1:ncol(X)) {
     p_values[j] <- conditional_randomization_test(X, y, j, K)
   }
-  
   return(p_values)
 }
 
-n <- 500
-p <- 200
 X <- generate_AR1(n=n, p=p)
 Y <- rbinom(n, 1, 0.5)
 p_values <- conditional_randomization_test_all(X, Y)
 print(p_values)
 ```
 
-
 ## 4) Show that your solution fixes the problem.
+
+The code below is an attempt (thus not sure if it is fully correct) to show how CRT fixes issue with the original plot.
+
+```{r}
+generate_responses_crt <- function(n, p, prob = NULL) {
+  X <- generate_AR1(n=n, p=p)
+  if (is.null(prob)) {
+    prob <- plogis(0.08*rowSums(X[, 2:22]))
+  }
+  Y <- rbinom(n, 1, prob)
+  # assuming that we want to be confident in showing that p-values are <= 0.05
+  # set K = 20 (reciprocal of 0.05)
+  # we are interested in running CRT for the first feature
+  p_values <- conditional_randomization_test(X, Y, j=1, K=20)
+  return(p_values)
+}
+
+fixed_p_values_1 <- replicate(100, generate_responses_crt(n=n, p=p, prob=0.5))
+fixed_p_values_2 <- replicate(100, generate_responses_crt(n=n, p=p))
+```
+
+```{r, echo=FALSE, fig.width=10, fig.height=2}
+# Combine the lists into a single tibble
+df_crt <- tibble(
+  p_values_1=fixed_p_values_1,
+  p_values_2=fixed_p_values_2
+)
+
+# Create histograms for each set of p-values
+histogram_1 <- ggplot(data=df_crt, aes(x=fixed_p_values_1)) + 
+  geom_histogram(color="red", fill="blue", bins=20, boundary=0) +
+  labs(x="P-values", y="count", title="Global Null, AR(1) Design") +
+  theme(plot.title=element_text(hjust=0, face="bold")) +
+  scale_x_continuous(limits=c(0, 1)) # +
+  #scale_y_continuous(limits=c(0, 2000))
+
+histogram_2 <- ggplot(data=df_crt, aes(x=fixed_p_values_2)) + 
+  geom_histogram(color="red", fill="blue", bins=20, boundary=0) +
+  labs(x="P-values", y="count", title="20 Nonzero Coefficients, AR(1) Design") +
+  theme(plot.title=element_text(hjust=0, face="bold")) +
+  scale_x_continuous(limits=c(0, 1)) # +
+  #scale_y_continuous(limits=c(0, 2000))
+
+# Arrange the plots side by side
+combined_plots <- plot_grid(histogram_1, histogram_2, nrow=1, ncol=2, shareY=TRUE)
+
+# Display the combined plots
+print(combined_plots)
+```
+
 
 ## 5) Find a real dataset and apply your method.
