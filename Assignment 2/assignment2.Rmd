@@ -30,6 +30,7 @@ knitr::opts_chunk$set(
 Link to our GitHub repository: <https://github.com/nprianikov/compstats>
 
 ## 1) Reproduce Figure 1 from [(Candès et al. 2018)](https://arxiv.org/abs/1610.02351).
+
 ```{r, echo=False} 
 # Helper functions to generate the data and responses
 
@@ -40,9 +41,15 @@ generate_AR1 <- function(n, p) {
 }
 
 # Function to generate responses, fit a logistic regression model and return individual p-values
-generate_p_values <- function(X, y) {
-  fit <- glm(y ~ ., data=X, family=binomial(link="logit"))
-  p_values <- summary(fit)$coef[, "Pr(>|z|)"][2] # Take p-values for beta_1 only
+generate_p_values <- function(X, y, select = TRUE) {
+  fit <- glm(y ~ X, family="binomial")
+  
+  p_values <- summary(fit)$coef[, "Pr(>|z|)"][-1] # remove intercept
+  if (select) {
+    print(p_values)
+    p_values <- p_values[1] # Take p-values for beta_1 only  
+    print(p_values)
+  }
   return(p_values)
 }
 ```
@@ -101,7 +108,7 @@ print(combined_plots)
 ```
 
 ## 2) What is the problem that Figure 1 tries to illustrate?
-Figure 1 illustrates the p-values for coefficient $\beta_1$ in two GLMs for two different systems. The figure shows, for each system, a histogram of the distribution of the $\beta_1$ p-value over $10,000$ replications of the experiment. The systems are given by the following functions:
+The figure above illustrates the p-values for coefficient $\beta_1$ in two GLMs for two different systems. The figure shows, for each system, a histogram of the distribution of the $\beta_1$ p-value over $10,000$ replications of the experiment. The systems are given by the following functions:
 
 (1) $Y | X_1, \ldots, X_p \sim \text{Bernoulli}(0.5)\\$
 
@@ -124,31 +131,13 @@ We, however, introduce two modifications to the original CRT procedure. Firstly,
 This process is repeated K times to generate an empirical distribution of the test statistic under the null hypothesis. The p-value is then calculated based on where the actual test statistic falls within this null distribution. By doing this, CRT accounts for the dependence between the covariates.
 
 ```{r}
-# draw a new sample from the conditional distribution of Xj | X-j using a random number generator
-# Not sure if this is the correct way to sample
-simulate_Xj_given_Xj <- function(X, j) {
-  Xj <- X[, j] 
-  X_minus_j <- X[, -j, drop=FALSE]
-  
-  # Fit a model to predict Xj from the rest of the data
-  model <- glm(Xj ~ ., data=X_minus_j, family="gaussian")
-  predicted_Xj <- predict(model, newdata=list(Xj=Xj), type="response")
-  print("HEY")
-  
-  residuals_sd <- sd(resid(model))
-  
-  # Generate new samples for Xj with added randomness
-  new_Xj_samples <- predicted_Xj + rnorm(length(predicted_Xj), mean=0, sd=residuals_sd)
-  
-  return(new_Xj_samples)
-}
+library(MASS)
 
-# second version of implementation
 simulate_Xj_gaussian <- function(X, j) {
   n <- ncol(X)
   mu <- colMeans(X)
   sigma <- cov(X)
-  
+
   mu_1 <- mu[j]
   mu_2 <- mu[-j]
   
@@ -157,9 +146,9 @@ simulate_Xj_gaussian <- function(X, j) {
   sigma_22 <- sigma[-j, -j]
   sigma_12 <- sigma[j, -j]
   sigma_21 <- sigma[-j, j]
-  
+
   # Calculate the conditional mean and variance for each sample
-  sigma_inv <- solve(sigma_22)
+  sigma_inv <- ginv(sigma_22)
   mu_bar_list <- numeric(nrow(X))
   
   sigma_bar <- sigma_11 - sigma_12 %*% sigma_inv %*% sigma_21
@@ -177,24 +166,23 @@ simulate_Xj_gaussian <- function(X, j) {
 # Using absolute value of an estimated coefficient
 # Source paper uses abs. value of Lasso-estimated coefficient
 compute_Tj <- function(X, y) {
-  fit <- glm(y ~ ., data=X, family="binomial")
+  fit <- glm(y ~ X, family="binomial")
   coef <- coef(fit)
   return(abs(coef))
 }
 
 # Conditional Randomization Test for a specific j
 conditional_randomization_test <- function(X, y, j, K = 20) {
-  original_Tj <- compute_Tj(X, y)[j+1]
+  original_Tj <- compute_Tj(X=X, y=y)[j+1]
   greater_count <- 0
   
   for (k in 1:K) {
     # Create a new data matrix by simulating the jth column and keeping the remaining columns the same
     X_simulated <- X
-    #X_simulated[, j] <- simulate_Xj_given_Xj(X, j)
-    X_simulated[, j] <- simulate_Xj_gaussian(X, j)
+    X_simulated[, j] <- simulate_Xj_gaussian(X=X, j=j)
 
     # Compute Tj for the simulated data
-    simulated_Tj <- compute_Tj(X_simulated, y)[j+1]
+    simulated_Tj <- compute_Tj(X=X_simulated, y=y)[j+1]
     # Increment count if simulated Tj is greater than or equal to the original Tj
     if (simulated_Tj >= original_Tj) {
       greater_count <- greater_count + 1
@@ -235,9 +223,6 @@ fixed_p_values_2 <- replicate(1000, generate_responses_crt(n=n, p=p))
 ```
 
 ```{r, echo=FALSE, fig.width=10, fig.height=2}
-library(ggplot2)
-library(cowplot)
-# Combine the lists into a single tibble
 df_crt <- tibble(
   p_values_1=fixed_p_values_1,
   p_values_2=fixed_p_values_2
@@ -271,64 +256,48 @@ print(combined_plots)
 library(readr)
 library(dplyr)
 library(ggplot2)
+library(cowplot)
 
 set.seed(111)
 
-options(max.print = 10000)  # Set max.print to a large value to print more lines
-
-
 data <- read.csv('./data.csv')
-new_column_names <- paste0("X", 1:ncol(data))
-names(data) <- new_column_names
-data <- data[, !names(data) %in% c("X95", "X86")]
-data <- data[complete.cases(data), ]
-data <- data[sample(nrow(data), 900), ]
+data <- data[, !names(data) %in% c("Net.worth.Assets", "Current.Liability.to.Liability", "Current.Liability.to.Equity", "Net.Income.Flag")]
+# data <- data[sample(nrow(data), 1000), ]
 
 ncol(data)/nrow(data)
+```
 
-y <- data[, 1]
+```{r}
+# Get dependent and independent variables
+y <- as.matrix(data[, 1])
+X <- as.matrix(data[, -1])
+X <- scale(X) # standardize features
 
-add_random_feature <- function() {
-  X <- data[, -1]  
-  # Add a random feature to the data
-  X1 <- rnorm(nrow(data))
-  X <- cbind(X1, X)
-  
-  return(X)
-}
-
-simulation_1 <- function() {
-  X <- add_random_feature()  
-  p_values <- generate_p_values(X=X, y=y)
-  
-  return(p_values)
-}
-simulation_2 <- function() {
-  X <- add_random_feature()  
-  p_values <- conditional_randomization_test_all(X=X, y=y, K=1)
-  
-  return(p_values)
-}
-
+# Compute p-values for all independent variables using both vanilla (none) and CRT approaches
 df_data <- tibble(
-  vanilla=replicate(10, simulation_1()),
-  crt=replicate(10, simulation_2())
+  vanilla=generate_p_values(X=X, y=y, select=FALSE),
+  crt=sapply(
+    1:ncol(X), 
+    function(j) conditional_randomization_test(X=X, y=y, j=j, K=20)
+  )
 )
+```
 
+```{r, echo=FALSE, fig.width=10, fig.height=2}
 # Create histograms for each set of p-values
 histogram_1 <- ggplot(data=df_data, aes(x=vanilla)) + 
   geom_histogram(color="red", fill="blue", bins=20, boundary=0) +
   labs(x="P-values", y="count", title="Vanilla") +
   theme(plot.title=element_text(hjust=0, face="bold")) +
-  scale_x_continuous(limits=c(0, 1)) +
-  scale_y_continuous(limits=c(0, 20))
+  scale_x_continuous(limits=c(0, 1)) #+
+  # scale_y_continuous(limits=c(0, 20))
 
 histogram_2 <- ggplot(data=df_data, aes(x=crt)) + 
   geom_histogram(color="red", fill="blue", bins=20, boundary=0) +
   labs(x="P-values", y="count", title="CRT") +
   theme(plot.title=element_text(hjust=0, face="bold")) +
-  scale_x_continuous(limits=c(0, 1)) +
-  scale_y_continuous(limits=c(0, 20))
+  scale_x_continuous(limits=c(0, 1)) #+
+  #scale_y_continuous(limits=c(0, 20))
 
 # Arrange the plots side by side
 combined_plots <- plot_grid(histogram_1, histogram_2, nrow=1, ncol=2, shareY=TRUE)
