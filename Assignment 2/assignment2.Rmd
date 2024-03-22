@@ -40,14 +40,9 @@ generate_AR1 <- function(n, p) {
 }
 
 # Function to generate responses, fit a logistic regression model and return individual p-values
-generate_p_values <- function(X, y, select = TRUE) {
-  fit <- glm(y ~ ., data=X, family=binomial(link="logit"), maxit=1000)
-  if (is.null(select)) {
-    p_values <- summary(fit)$coef[-1, "Pr(>|z|)"]
-  }
-  else {
-    p_values <- summary(fit)$coef[, "Pr(>|z|)"][2] # Take p-values for beta_1 only
-  }
+generate_p_values <- function(X, y) {
+  fit <- glm(y ~ ., data=X, family=binomial(link="logit"))
+  p_values <- summary(fit)$coef[, "Pr(>|z|)"][2] # Take p-values for beta_1 only
   return(p_values)
 }
 ```
@@ -130,8 +125,9 @@ simulate_Xj_given_Xj <- function(X, j) {
   X_minus_j <- X[, -j, drop=FALSE]
   
   # Fit a model to predict Xj from the rest of the data
-  model <- glm(Xj ~ X_minus_j - 1, family="gaussian")
-  predicted_Xj <- predict(model, newdata=list(X_minus_j=X_minus_j))
+  model <- glm(Xj ~ ., data=X_minus_j, family="gaussian")
+  predicted_Xj <- predict(model, newdata=list(Xj=Xj), type="response")
+  print("HEY")
   
   residuals_sd <- sd(resid(model))
   
@@ -175,14 +171,14 @@ simulate_Xj_gaussian <- function(X, j) {
 # Using absolute value of an estimated coefficient
 # Source paper uses abs. value of Lasso-estimated coefficient
 compute_Tj <- function(X, y) {
-  fit <- glm(y ~ X - 1, family=binomial(link="logit"))
+  fit <- glm(y ~ ., data=X, family="binomial")
   coef <- coef(fit)
   return(abs(coef))
 }
 
 # Conditional Randomization Test for a specific j
 conditional_randomization_test <- function(X, y, j, K = 20) {
-  original_Tj <- compute_Tj(X, y)[j]
+  original_Tj <- compute_Tj(X, y)[j+1]
   greater_count <- 0
   
   for (k in 1:K) {
@@ -192,7 +188,7 @@ conditional_randomization_test <- function(X, y, j, K = 20) {
     X_simulated[, j] <- simulate_Xj_gaussian(X, j)
 
     # Compute Tj for the simulated data
-    simulated_Tj <- compute_Tj(X_simulated, y)[j]
+    simulated_Tj <- compute_Tj(X_simulated, y)[j+1]
     # Increment count if simulated Tj is greater than or equal to the original Tj
     if (simulated_Tj >= original_Tj) {
       greater_count <- greater_count + 1
@@ -207,10 +203,10 @@ conditional_randomization_test <- function(X, y, j, K = 20) {
 ```{r}
 # Conditional Randomization Test for entire matrix X
 conditional_randomization_test_all <- function(X, y, K = 1) {
-  p_values <- numeric(ncol(X))
-  for (j in 1:ncol(X)) {
-    p_values[j] <- conditional_randomization_test(X=X, y=y, j=j, K=K)
-  }
+  p_values <- sapply(
+    1:ncol(X), 
+    function(j) conditional_randomization_test(X=X, y=y, j=j, K=K)
+  )
   return(p_values)
 }
 
@@ -277,55 +273,72 @@ print(combined_plots)
 
 ## 5) Find a real dataset and apply your method.
 
-```{r, echo=FALSE}
-data = as_tibble(read.csv("./data.csv"))
-data <- data[complete.cases(data), ]
-
-data
-```
-
-```{r}
-ncol(data)/nrow(data)
-
-# Extract the output variables and predictors
-y <- unlist(data[, 1])
-X <- data[, -1]
-
-df <- tibble(
-  vanilla = generate_p_values(X=X, y=y),
-  # crt = conditional_randomization_test_all(X=X, y=y, K=1)
-)
-```
-
-```{r, echo=FALSE}
-# Create histograms for each set of p-values
-histogram_1 <- ggplot(data=df, aes(x=vanilla)) + 
-  geom_histogram(color="red", fill="blue", bins=20, boundary=0) +
-  labs(x="P-values", y="count", title="Global Null, AR(1) Design") +
-  theme(plot.title=element_text(hjust=0, face="bold")) +
-  scale_x_continuous(limits=c(0, 1)) # +
-  #scale_y_continuous(limits=c(0, 2000))  # TODO
-
-print(histogram_1)
-
-```
-
 ```{r}
 library(readr)
 library(dplyr)
+library(ggplot2)
 
-data <- read.csv('data.csv', header = TRUE)
-set.seed(12)
+set.seed(111)
 
+options(max.print = 10000)  # Set max.print to a large value to print more lines
+
+
+data <- read.csv('./data.csv')
+new_column_names <- paste0("X", 1:ncol(data))
+names(data) <- new_column_names
+data <- data[, !names(data) %in% c("X95", "X86")]
+data <- data[complete.cases(data), ]
 data <- data[sample(nrow(data), 900), ]
 
-X <- data[, -1]  
+ncol(data)/nrow(data)
+
 y <- data[, 1]
 
-p_values <- generate_p_values(X=X, y=y,select=NULL)
+add_random_feature <- function() {
+  X <- data[, -1]  
+  # Add a random feature to the data
+  X1 <- rnorm(nrow(data))
+  X <- cbind(X1, X)
+  
+  return(X)
+}
 
-hist(p_values, main = "Histogram of Predictor P-values",
-     xlab = "P-values", ylab = "Frequency", col = "skyblue", border = "white")
+simulation_1 <- function() {
+  X <- add_random_feature()  
+  p_values <- generate_p_values(X=X, y=y)
+  
+  return(p_values)
+}
+simulation_2 <- function() {
+  X <- add_random_feature()  
+  p_values <- conditional_randomization_test_all(X=X, y=y, K=1)
+  
+  return(p_values)
+}
 
+df_data <- tibble(
+  vanilla=replicate(10, simulation_1()),
+  crt=replicate(10, simulation_2())
+)
 
+# Create histograms for each set of p-values
+histogram_1 <- ggplot(data=df_data, aes(x=vanilla)) + 
+  geom_histogram(color="red", fill="blue", bins=20, boundary=0) +
+  labs(x="P-values", y="count", title="Vanilla") +
+  theme(plot.title=element_text(hjust=0, face="bold")) +
+  scale_x_continuous(limits=c(0, 1)) +
+  scale_y_continuous(limits=c(0, 20))
+
+histogram_2 <- ggplot(data=df_data, aes(x=crt)) + 
+  geom_histogram(color="red", fill="blue", bins=20, boundary=0) +
+  labs(x="P-values", y="count", title="CRT") +
+  theme(plot.title=element_text(hjust=0, face="bold")) +
+  scale_x_continuous(limits=c(0, 1)) +
+  scale_y_continuous(limits=c(0, 20))
+
+# Arrange the plots side by side
+combined_plots <- plot_grid(histogram_1, histogram_2, nrow=1, ncol=2, shareY=TRUE)
+
+# Display the combined plots
+print(combined_plots)
 ```
