@@ -309,3 +309,23 @@ histogram_1 <- ggplot(data=df, aes(x=vanilla)) +
 print(histogram_1)
 
 ```
+
+```{r}
+library(readr)
+library(dplyr)
+
+data <- read.csv('data.csv', header = TRUE)
+set.seed(12)
+
+data <- data[sample(nrow(data), 900), ]
+
+X <- data[, -1]  
+y <- data[, 1]
+
+p_values <- generate_p_values(X=X, y=y,select=NULL)
+
+hist(p_values, main = "Histogram of Predictor P-values",
+     xlab = "P-values", ylab = "Frequency", col = "skyblue", border = "white")
+
+
+```
