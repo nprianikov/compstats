@@ -259,6 +259,8 @@ We found a real dataset with 92 variables and 6819 observations. We select 800 s
 
 The results of the CRT suggest that the original GLM identified many predictors as significant due to the high chance of type I errors in high-dimensional datasets. By providing a more stringent method for calculating $p$-values, CRT reduces the likelihood of these false discoveries, leading to valid $p$-values that identify the true predictors of the response variable.
 
+NB: we removed some columns, because they had a high collinearity, leading to singular matrix exceptions when re-sampling.
+
 ```{r, echo=FALSE}
 library(readr)
 library(dplyr)
