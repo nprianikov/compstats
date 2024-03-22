@@ -31,7 +31,7 @@ Link to our GitHub repository: <https://github.com/nprianikov/compstats>
 
 ## 1) Reproduce Figure 1 from [(Candès et al. 2018)](https://arxiv.org/abs/1610.02351).
 
-```{r, echo=False} 
+```{r, echo=FALSE} 
 # Helper functions to generate the data and responses
 
 # Generate X as n AR(1) time-series of size p
@@ -151,7 +151,7 @@ simulate_Xj_gaussian <- function(X, j) {
   for (i in 1:nrow(X)) {
     X_i <- X[i, -j]
     mu_bar <- mu_1 + sigma_12 %*% sigma_inv %*% (X_i - mu_2)
-    sampled_X_j[i] <- rnorm(1, mean = mu_bar, sd = sqrt(sigma_bar))
+    sampled_X_j[i] <- rnorm(1, mean=mu_bar, sd=sqrt(sigma_bar))
   }
   return(sampled_X_j)
 }
@@ -160,14 +160,14 @@ simulate_Xj_gaussian <- function(X, j) {
 # Using absolute value of an estimated coefficient
 # Source paper uses abs. value of Lasso-estimated coefficient
 compute_Tj <- function(X, y) {
-  fit <- glm(y ~ X, family="binomial")
-  coef <- coef(fit)
+  fit <- glm(y ~ X, family=binomial)
+  coef <- coef(fit)[-1] # Exclude intercept
   return(abs(coef))
 }
 
 # Conditional Randomization Test for a specific j
 conditional_randomization_test <- function(X, y, j, K = 20) {
-  original_Tj <- compute_Tj(X=X, y=y)[j+1]
+  original_Tj <- compute_Tj(X=X, y=y)[j]
   greater_count <- 0
   
   for (k in 1:K) {
@@ -176,7 +176,7 @@ conditional_randomization_test <- function(X, y, j, K = 20) {
     X_simulated[, j] <- simulate_Xj_gaussian(X=X, j=j)
 
     # Compute Tj for the simulated data
-    simulated_Tj <- compute_Tj(X=X_simulated, y=y)[j+1]
+    simulated_Tj <- compute_Tj(X=X_simulated, y=y)[j]
     # Increment count if simulated Tj is greater than or equal to the original Tj
     if (simulated_Tj >= original_Tj) {
       greater_count <- greater_count + 1
@@ -245,14 +245,10 @@ print(combined_plots)
 ```{r}
 library(readr)
 library(dplyr)
-library(ggplot2)
-library(cowplot)
-
-set.seed(111)
 
 data <- read.csv('./data.csv')
 data <- data[, !names(data) %in% c("Net.worth.Assets", "Current.Liability.to.Liability", "Current.Liability.to.Equity", "Net.Income.Flag")]
-# data <- data[sample(nrow(data), 1000), ]
+data <- data[sample(nrow(data), 800), ]
 
 ncol(data)/nrow(data)
 ```
@@ -261,7 +257,6 @@ ncol(data)/nrow(data)
 # Get dependent and independent variables
 y <- as.matrix(data[, 1])
 X <- as.matrix(data[, -1])
-X <- scale(X) # standardize features
 
 # Compute p-values for all independent variables using both vanilla (none) and CRT approaches
 df_data <- tibble(
