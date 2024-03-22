@@ -32,7 +32,7 @@ Link to our GitHub repository: <https://github.com/nprianikov/compstats>
 
 ## 1) Reproduce Figure 1 from [(Candès et al. 2018)](https://arxiv.org/abs/1610.02351).
 
-![Replicated simulation from the source paper.](part1.jpeg)
+![Replicated simulation from the source paper.](part1.png)
 
 ```{r, echo=FALSE} 
 # Helper functions to generate the data and responses
