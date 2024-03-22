@@ -72,6 +72,7 @@ simulation <- function(n, p, prob = NULL) {
   p_values <- generate_p_values(X=X, y=y, prob=prob)
   return(p_values)
 }
+```
 
 df_plot <- tibble(
   p_values_1 = c(replicate(n_sim, simulation(n=n, p=p, prob=0.5))),
@@ -141,6 +142,36 @@ simulate_Xj_given_Xj <- function(X, j) {
   return(new_Xj_samples)
 }
 
+# second version of implementation
+simulate_Xj_gaussian <- function(X, j) {
+  n <- ncol(X)
+  mu <- colMeans(X)
+  sigma <- cov(X)
+  
+  mu_1 <- mu[j]
+  mu_2 <- mu[-j]
+  
+  # Remove the j-th feature to compute the conditional
+  sigma_11 <- sigma[j, j]
+  sigma_22 <- sigma[-j, -j]
+  sigma_12 <- sigma[j, -j]
+  sigma_21 <- sigma[-j, j]
+  
+  # Calculate the conditional mean and variance for each sample
+  sigma_inv <- solve(sigma_22)
+  mu_bar_list <- numeric(nrow(X))
+  
+  sigma_bar <- sigma_11 - sigma_12 %*% sigma_inv %*% sigma_21
+  sampled_X_j <- numeric(nrow(X))
+  
+  for (i in 1:nrow(X)) {
+    X_i <- X[i, -j]
+    mu_bar <- mu_1 + sigma_12 %*% sigma_inv %*% (X_i - mu_2)
+    sampled_X_j[i] <- rnorm(1, mean = mu_bar, sd = sqrt(sigma_bar))
+  }
+  return(sampled_X_j)
+}
+
 # Feature importance statistic function to test whether Xj and Y are conditionally independent.
 # Using absolute value of an estimated coefficient
 # Source paper uses abs. value of Lasso-estimated coefficient
@@ -151,15 +182,16 @@ compute_Tj <- function(X, y) {
 }
 
 # Conditional Randomization Test for a specific j
-conditional_randomization_test <- function(X, y, j, K = 200) {
+conditional_randomization_test <- function(X, y, j, K = 20) {
   original_Tj <- compute_Tj(X, y)[j]
   greater_count <- 0
   
   for (k in 1:K) {
     # Create a new data matrix by simulating the jth column and keeping the remaining columns the same
     X_simulated <- X
-    X_simulated[, j] <- simulate_Xj_given_Xj(X, j)
-    
+    #X_simulated[, j] <- simulate_Xj_given_Xj(X, j)
+    X_simulated[, j] <- simulate_Xj_gaussian(X, j)
+
     # Compute Tj for the simulated data
     simulated_Tj <- compute_Tj(X_simulated, y)[j]
     # Increment count if simulated Tj is greater than or equal to the original Tj
@@ -214,6 +246,8 @@ fixed_p_values_2 <- replicate(1000, generate_responses_crt(n=n, p=p))
 ```
 
 ```{r, echo=FALSE, fig.width=10, fig.height=2}
+library(ggplot2)
+library(cowplot)
 # Combine the lists into a single tibble
 df_crt <- tibble(
   p_values_1=fixed_p_values_1,
@@ -225,15 +259,15 @@ histogram_1 <- ggplot(data=df_crt, aes(x=fixed_p_values_1)) +
   geom_histogram(color="red", fill="blue", bins=20, boundary=0) +
   labs(x="P-values", y="count", title="Global Null, AR(1) Design") +
   theme(plot.title=element_text(hjust=0, face="bold")) +
-  scale_x_continuous(limits=c(0, 1)) # +
-  #scale_y_continuous(limits=c(0, 2000))  # TODO
+  scale_x_continuous(limits=c(0, 1)) +
+  scale_y_continuous(limits=c(0, 20))
 
 histogram_2 <- ggplot(data=df_crt, aes(x=fixed_p_values_2)) + 
   geom_histogram(color="red", fill="blue", bins=20, boundary=0) +
   labs(x="P-values", y="count", title="20 Nonzero Coefficients, AR(1) Design") +
   theme(plot.title=element_text(hjust=0, face="bold")) +
-  scale_x_continuous(limits=c(0, 1)) # +
-  #scale_y_continuous(limits=c(0, 2000))  # TODO
+  scale_x_continuous(limits=c(0, 1)) +
+  scale_y_continuous(limits=c(0, 20))
 
 # Arrange the plots side by side
 combined_plots <- plot_grid(histogram_1, histogram_2, nrow=1, ncol=2, shareY=TRUE)
