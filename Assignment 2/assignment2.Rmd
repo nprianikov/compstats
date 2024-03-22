@@ -255,6 +255,8 @@ print(combined_plots)
 
 ## 5) Find a real dataset and apply your method.
 
+![Comparision of $p$-values for all the model coefficients with a default procedure and CRT.](part5.png)
+
 We found a real dataset with 92 variables and 6819 observations. We select 800 samples at random so that $p/n = 0.115 > 0.1$. We fitted a GLM and plotted the normal $p$-values and the ones obtained by CRT. The histogram of standard $p$-values shows most of the $p$-values are near 0, which means that all of the variables are considered statistically significant. However, this can be due to the high-dimensionality of the dataset, with many predictors, even by random chance, some will appear to be significant. On the other hand, the histogram of $p$-values obtained through CRT has a different distribution. The values are distributed more uniformly, with more variables showing high p-values which indicate no statistical significance. This means that after applying CRT, less predictors are considered significant, which aligns better with what we would expect under the null hypothesis, since it is unlikely that all predictors are significantly associated with the response. 
 
 The results of the CRT suggest that the original GLM identified many predictors as significant due to the high chance of type I errors in high-dimensional datasets. By providing a more stringent method for calculating $p$-values, CRT reduces the likelihood of these false discoveries, leading to valid $p$-values that identify the true predictors of the response variable.
